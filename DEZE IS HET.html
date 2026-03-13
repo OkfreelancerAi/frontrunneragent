@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgentRental — Autonomous AI Agents for Professionals</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    :root {
+      --ink: #0a0a0f;
+      --paper: #f5f4ef;
+      --accent: #ff4d1c;
+      --accent2: #1a1aff;
+      --muted: #6b6b72;
+      --border: #e2e0d8;
+      --card: #ffffff;
+      --success: #00b37e;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, .syne { font-family: 'Syne', sans-serif; }
+
+    /* NOISE TEXTURE */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.4;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(245,244,239,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; letter-spacing: -0.04em; }
+    .nav-logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
+    .nav-links a { text-decoration: none; color: var(--muted); font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta {
+      background: var(--ink); color: #fff !important;
+      padding: 0.5rem 1.25rem; border-radius: 6px; font-weight: 600 !important;
+      font-size: 0.85rem !important;
+    }
+    .nav-cta:hover { background: var(--accent) !important; color: #fff !important; }
+
+    /* HERO */
+    .hero {
+      min-height: 92vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 6rem 2rem 4rem;
+      gap: 4rem;
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: #fff; border: 1px solid var(--border);
+      padding: 0.4rem 1rem; border-radius: 100px;
+      font-size: 0.78rem; font-weight: 600; color: var(--accent);
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    .hero h1 {
+      font-size: clamp(3rem, 5vw, 5rem);
+      font-weight: 800;
+      line-height: 1.0;
+      letter-spacing: -0.04em;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+
+    .hero p {
+      font-size: 1.15rem;
+      line-height: 1.7;
+      color: var(--muted);
+      max-width: 480px;
+      margin-bottom: 2.5rem;
+      font-weight: 300;
+    }
+
+    .hero-btns { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+    .btn-primary {
+      background: var(--ink); color: #fff;
+      padding: 0.9rem 2rem; border-radius: 8px;
+      font-weight: 600; font-size: 0.95rem;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .btn-primary:hover { background: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,77,28,0.3); }
+
+    .btn-ghost {
+      background: transparent; color: var(--ink);
+      padding: 0.9rem 2rem; border-radius: 8px;
+      font-weight: 600; font-size: 0.95rem;
+      text-decoration: none; border: 1.5px solid var(--border);
+      cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .btn-ghost:hover { border-color: var(--ink); background: var(--ink); color: #fff; }
+
+    /* HERO VISUAL */
+    .hero-visual {
+      position: relative;
+    }
+    .terminal {
+      background: #0f0f14;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.2);
+      border: 1px solid #2a2a3a;
+    }
+    .terminal-bar {
+      background: #1a1a24;
+      padding: 0.75rem 1rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      border-bottom: 1px solid #2a2a3a;
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-r { background: #ff5f56; }
+    .dot-y { background: #ffbd2e; }
+    .dot-g { background: #27c93f; }
+    .terminal-title { margin-left: auto; font-size: 0.75rem; color: #555; font-family: monospace; }
+    .terminal-body { padding: 1.5rem; font-family: 'Courier New', monospace; font-size: 0.82rem; line-height: 1.8; }
+    .t-dim { color: #555; }
+    .t-green { color: #27c93f; }
+    .t-blue { color: #58a6ff; }
+    .t-orange { color: #ff9500; }
+    .t-white { color: #e2e8f0; }
+    .t-red { color: #ff5f56; }
+    .cursor { display: inline-block; width: 8px; height: 14px; background: #27c93f; animation: blink 1s infinite; vertical-align: middle; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    .stats-row {
+      display: flex; gap: 2rem; margin-top: 1.5rem;
+      padding-top: 1.5rem; border-top: 1px solid var(--border);
+    }
+    .stat { }
+    .stat-num { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.04em; }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 0.1rem; }
+
+    /* LOGOS / SOCIAL PROOF */
+    .proof-bar {
+      background: var(--ink); color: rgba(255,255,255,0.5);
+      padding: 1rem 2rem; text-align: center;
+      font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+    }
+    .proof-bar span { color: rgba(255,255,255,0.25); margin: 0 1rem; }
+
+    /* USE CASES */
+    .section { padding: 6rem 2rem; max-width: 1280px; margin: 0 auto; }
+    .section-label {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 1rem;
+    }
+    .section-title {
+      font-size: clamp(2rem, 3.5vw, 3rem);
+      font-weight: 800; letter-spacing: -0.04em;
+      line-height: 1.1; margin-bottom: 1rem;
+    }
+    .section-sub { color: var(--muted); font-size: 1.05rem; max-width: 560px; line-height: 1.7; font-weight: 300; }
+
+    .use-cases-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;
+      margin-top: 3rem;
+    }
+    .use-case-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 2rem;
+      transition: all 0.3s;
+      position: relative; overflow: hidden;
+    }
+    .use-case-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, transparent 60%, rgba(255,77,28,0.05));
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .use-case-card:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.08); border-color: var(--accent); }
+    .use-case-card:hover::before { opacity: 1; }
+    .uc-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .uc-role { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem; }
+    .uc-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.75rem; }
+    .uc-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+    .uc-tasks { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .uc-task { font-size: 0.82rem; color: var(--muted); display: flex; gap: 0.5rem; align-items: flex-start; }
+    .uc-task::before { content: '→'; color: var(--accent); flex-shrink: 0; font-weight: 600; }
+
+    /* PRICING */
+    .pricing-section { background: var(--ink); padding: 6rem 2rem; }
+    .pricing-inner { max-width: 1280px; margin: 0 auto; }
+    .pricing-section .section-label { color: var(--accent); }
+    .pricing-section .section-title { color: #fff; }
+    .pricing-section .section-sub { color: rgba(255,255,255,0.5); }
+
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem; margin-top: 3rem;
+    }
+    .plan-card {
+      background: #14141e; border: 1px solid #2a2a3a;
+      border-radius: 16px; padding: 2rem;
+      transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .plan-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+    .plan-card.featured {
+      background: #fff; border-color: #fff;
+    }
+    .plan-card.featured:hover { border-color: var(--accent); }
+
+    .plan-badge {
+      position: absolute; top: 1.25rem; right: 1.25rem;
+      background: var(--accent); color: #fff;
+      font-size: 0.65rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 0.3rem 0.75rem; border-radius: 100px;
+    }
+    .plan-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+    .plan-card.featured .plan-name { color: var(--muted); }
+    .plan-title { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; color: #fff; margin-bottom: 1.5rem; letter-spacing: -0.03em; }
+    .plan-card.featured .plan-title { color: var(--ink); }
+
+    .plan-price { margin-bottom: 2rem; }
+    .plan-price .amount { font-family: 'Syne', sans-serif; font-size: 3.5rem; font-weight: 800; color: #fff; letter-spacing: -0.05em; line-height: 1; }
+    .plan-card.featured .amount { color: var(--ink); }
+    .plan-price .per { font-size: 0.85rem; color: rgba(255,255,255,0.4); font-weight: 300; }
+    .plan-card.featured .per { color: var(--muted); }
+    .plan-price .was { font-size: 0.9rem; color: rgba(255,255,255,0.25); text-decoration: line-through; margin-right: 0.5rem; }
+    .launch-tag { display: inline-block; background: rgba(255,77,28,0.15); color: var(--accent); font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 4px; letter-spacing: 0.05em; margin-top: 0.25rem; }
+
+    .plan-features { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem; }
+    .plan-feat { display: flex; gap: 0.75rem; align-items: flex-start; font-size: 0.88rem; }
+    .plan-feat .check { color: var(--success); flex-shrink: 0; font-weight: 700; }
+    .plan-feat .feat-text { color: rgba(255,255,255,0.7); line-height: 1.4; }
+    .plan-card.featured .feat-text { color: var(--muted); }
+    .plan-divider { border: none; border-top: 1px solid #2a2a3a; margin: 1rem 0; }
+    .plan-card.featured .plan-divider { border-color: var(--border); }
+
+    .btn-plan {
+      width: 100%; padding: 0.9rem; border-radius: 8px;
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem;
+      cursor: pointer; border: none; transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .btn-plan-light { background: rgba(255,255,255,0.08); color: #fff; }
+    .btn-plan-light:hover { background: var(--accent); }
+    .btn-plan-dark { background: var(--ink); color: #fff; }
+    .btn-plan-dark:hover { background: var(--accent); }
+
+    /* HOW IT WORKS */
+    .hiw-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 2rem; margin-top: 3rem; }
+    .hiw-step { position: relative; }
+    .hiw-num {
+      font-family: 'Syne', sans-serif; font-size: 5rem; font-weight: 800;
+      color: var(--border); line-height: 1; margin-bottom: 0.5rem;
+      letter-spacing: -0.05em;
+    }
+    .hiw-title { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .hiw-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+    .hiw-arrow { position: absolute; right: -1rem; top: 2rem; color: var(--border); font-size: 1.5rem; }
+
+    /* TESTIMONIALS */
+    .testimonials-section { background: #fff; padding: 6rem 2rem; }
+    .testi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem; margin-top: 3rem; }
+    .testi-card {
+      background: var(--paper); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.75rem;
+    }
+    .testi-stars { color: #f59e0b; font-size: 0.9rem; margin-bottom: 1rem; }
+    .testi-text { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 1.25rem; font-style: italic; }
+    .testi-author { display: flex; align-items: center; gap: 0.75rem; }
+    .testi-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--ink); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.8rem;
+    }
+    .testi-name { font-weight: 600; font-size: 0.88rem; }
+    .testi-role { font-size: 0.78rem; color: var(--muted); }
+
+    /* FAQ */
+    .faq-list { max-width: 720px; margin: 3rem auto 0; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q {
+      padding: 1.25rem 0; display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; font-weight: 600; font-size: 0.95rem;
+      font-family: 'Syne', sans-serif;
+    }
+    .faq-q .arrow { transition: transform 0.2s; color: var(--muted); }
+    .faq-item.open .arrow { transform: rotate(180deg); }
+    .faq-a { display: none; padding-bottom: 1.25rem; font-size: 0.9rem; color: var(--muted); line-height: 1.7; }
+    .faq-item.open .faq-a { display: block; }
+
+    /* TOS INLINE */
+    .tos-section { background: var(--paper); padding: 6rem 2rem; }
+    .tos-inner { max-width: 800px; margin: 0 auto; }
+    .tos-box {
+      background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem;
+      margin-top: 2rem;
+    }
+    .tos-box h3 { font-family: 'Syne', sans-serif; font-weight: 700; margin: 1.5rem 0 0.5rem; font-size: 1rem; }
+    .tos-box h3:first-child { margin-top: 0; }
+    .tos-box p, .tos-box li { font-size: 0.88rem; color: var(--muted); line-height: 1.7; margin-bottom: 0.5rem; }
+    .tos-box ul { padding-left: 1.25rem; }
+    .tos-box li { list-style: disc; }
+
+    /* FOOTER */
+    footer { background: #0a0a0f; color: rgba(255,255,255,0.4); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer-logo { font-family: 'Syne', sans-serif; font-weight: 800; color: #fff; font-size: 1.1rem; }
+    .footer-logo span { color: var(--accent); }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { text-decoration: none; color: rgba(255,255,255,0.4); font-size: 0.85rem; transition: color 0.2s; }
+    .footer-links a:hover { color: #fff; }
+    .footer-copy { font-size: 0.8rem; }
+    .wallet { font-family: monospace; font-size: 0.72rem; background: #15151f; padding: 0.4rem 0.75rem; border-radius: 4px; color: rgba(255,255,255,0.3); margin-top: 0.5rem; word-break: break-all; }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+      z-index: 1000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px; padding: 2.5rem;
+      max-width: 480px; width: 95%; max-height: 90vh; overflow-y: auto;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 1rem; right: 1rem;
+      background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted);
+    }
+    .modal h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem; margin-bottom: 0.5rem; letter-spacing: -0.03em; }
+    .modal-plan-summary {
+      background: var(--paper); border-radius: 8px; padding: 1rem 1.25rem;
+      margin: 1.25rem 0; display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-plan-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; }
+    .modal-plan-price { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; color: var(--accent); }
+
+    .payment-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .pay-tab {
+      flex: 1; padding: 0.75rem; border: 1.5px solid var(--border); border-radius: 8px;
+      cursor: pointer; background: none; font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem; font-weight: 500; transition: all 0.2s; text-align: center;
+    }
+    .pay-tab.active { border-color: var(--ink); background: var(--ink); color: #fff; }
+
+    .pay-panel { display: none; }
+    .pay-panel.active { display: block; }
+
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 0.75rem 1rem;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+      transition: border-color 0.2s; background: #fff;
+    }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--ink); }
+
+    #card-element {
+      border: 1.5px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem;
+      background: #fff; transition: border-color 0.2s;
+    }
+    #card-element.StripeElement--focus { border-color: var(--ink); }
+    #card-errors { color: #e53e3e; font-size: 0.8rem; margin-top: 0.4rem; min-height: 1.2rem; }
+
+    .crypto-box {
+      background: #0f0f14; border-radius: 8px; padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .crypto-label { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 0.5rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+    .crypto-addr { font-family: monospace; font-size: 0.8rem; color: #58a6ff; word-break: break-all; line-height: 1.5; }
+    .crypto-amount { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; color: #fff; margin-top: 0.75rem; }
+    .crypto-note { font-size: 0.8rem; color: var(--muted); line-height: 1.6; background: var(--paper); padding: 0.75rem; border-radius: 6px; }
+
+    .checkbox-row { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 1.25rem; }
+    .checkbox-row input { margin-top: 3px; flex-shrink: 0; }
+    .checkbox-row label { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+    .checkbox-row a { color: var(--accent); }
+
+    .submit-btn {
+      width: 100%; padding: 1rem; background: var(--ink); color: #fff;
+      border: none; border-radius: 8px; font-family: 'Syne', sans-serif;
+      font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .submit-btn:hover:not(:disabled) { background: var(--accent); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .secure-note { text-align: center; font-size: 0.78rem; color: var(--muted); margin-top: 0.75rem; }
+
+    /* SUCCESS */
+    .success-screen { display: none; text-align: center; padding: 1rem 0; }
+    .success-screen.active { display: block; }
+    .success-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+    .success-screen h3 { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .success-screen p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+
+    /* MISC */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+    .text-center { text-align: center; }
+    .mt-2 { margin-top: 2rem; }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .use-cases-grid, .pricing-grid, .hiw-grid, .testi-grid { grid-template-columns: 1fr; }
+      .hiw-arrow { display: none; }
+    }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .hero > * { animation: fadeUp 0.7s ease both; }
+    .hero > *:nth-child(2) { animation-delay: 0.1s; }
+    .hero-visual { animation: fadeUp 0.7s 0.3s ease both; }
+
+    /* LAUNCH BANNER */
+    .launch-banner {
+      background: var(--accent); color: #fff;
+      text-align: center; padding: 0.6rem 1rem;
+      font-size: 0.82rem; font-weight: 600; letter-spacing: 0.04em;
+    }
+    .launch-banner a { color: #fff; text-decoration: underline; }
+
+    /* SLA STRIP */
+    .sla-strip {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      max-width: 1280px; margin: 0 auto;
+      border: 1px solid var(--border); border-radius: 12px;
+      overflow: hidden; background: #fff;
+    }
+    .sla-item {
+      padding: 1.75rem 1.5rem; border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 0.25rem;
+    }
+    .sla-item:last-child { border-right: none; }
+    .sla-num { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.04em; }
+    .sla-label { font-size: 0.82rem; color: var(--muted); }
+    .sla-num.green { color: var(--success); }
+    .sla-num.orange { color: var(--accent); }
+    .sla-num.blue { color: var(--accent2); }
+  </style>
+</head>
+<body>
+
+<!-- LAUNCH BANNER -->
+<div class="launch-banner">
+  🚀 Launch Special: 50% off your first month. Limited to first 50 customers. <a href="#pricing">Claim now →</a>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Agent<span>Rental</span></div>
+  <div class="nav-links">
+    <a href="#use-cases">Use Cases</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <a href="#tos">Terms</a>
+    <a href="https://twitter.com/okfreelancer" target="_blank">Contact</a>
+    <a href="#pricing" class="nav-cta">Get Started →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section style="max-width:1280px;margin:0 auto;padding:6rem 2rem 4rem;">
+  <div class="hero" style="padding:0;max-width:100%;">
+    <div>
+      <div class="badge">Live Now — Agents Available</div>
+      <h1>Your business,<br><em>on autopilot.</em></h1>
+      <p>Rent a fully autonomous AI agent that handles your customer support, research, and outreach — 24/7, no hiring, no management. Built for professionals who bill by results, not hours.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="openModal('pro')">Deploy Your Agent <span>→</span></button>
+        <a href="#use-cases" class="btn-ghost">See What It Does</a>
+      </div>
+      <div class="stats-row">
+        <div class="stat"><div class="stat-num">47+</div><div class="stat-label">Agents deployed</div></div>
+        <div class="stat"><div class="stat-num">4.9★</div><div class="stat-label">Average rating</div></div>
+        <div class="stat"><div class="stat-num">&lt;5min</div><div class="stat-label">Activation time</div></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          <div class="terminal-title">agent.runtime — support-bot-#47</div>
+        </div>
+        <div class="terminal-body">
+          <div class="t-dim">// AgentRental Runtime v2.1.0</div>
+          <div class="t-dim">// Agent: Support-Bot #47 | Plan: Pro</div>
+          <br>
+          <div class="t-green">✓ Agent initialized</div>
+          <div class="t-blue">→ Connecting to your inbox...</div>
+          <div class="t-green">✓ Gmail connected (3 accounts)</div>
+          <div class="t-green">✓ Slack workspace linked</div>
+          <div class="t-green">✓ Knowledge base loaded (847 docs)</div>
+          <br>
+          <div class="t-white">Processing queue: <span class="t-orange">12 conversations</span></div>
+          <div class="t-green">✓ [09:14] Replied to David — billing Q</div>
+          <div class="t-green">✓ [09:17] Escalated to human — refund req</div>
+          <div class="t-green">✓ [09:23] Onboarding email sent — new user</div>
+          <div class="t-blue">→ [09:31] Drafting reply — feature req...</div>
+          <br>
+          <div class="t-dim">Uptime: 99.98% │ Conversations: 1,247 │ Escalations: 3%</div>
+          <div class="t-dim">Next scheduled task: research digest @ 10:00</div>
+          <br>
+          <span class="t-green">$</span> <span class="cursor"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLA STRIP -->
+<div style="padding:0 2rem 4rem;">
+  <div class="sla-strip">
+    <div class="sla-item">
+      <div class="sla-num green">99.9%</div>
+      <div class="sla-label">Uptime SLA guaranteed</div>
+    </div>
+    <div class="sla-item">
+      <div class="sla-num orange">&lt;5min</div>
+      <div class="sla-label">Agent activation time</div>
+    </div>
+    <div class="sla-item">
+      <div class="sla-num blue">24/7</div>
+      <div class="sla-label">Autonomous operation</div>
+    </div>
+    <div class="sla-item">
+      <div class="sla-num">0</div>
+      <div class="sla-label">Setup or management required</div>
+    </div>
+  </div>
+</div>
+
+<!-- USE CASES -->
+<section id="use-cases" class="section">
+  <div class="section-label">Built For Professionals</div>
+  <div class="section-title">Six ways professionals<br>use AgentRental today</div>
+  <p class="section-sub">Each agent is purpose-built for a specific workflow. Not a chatbot — a real autonomous worker that completes tasks end-to-end.</p>
+
+  <div class="use-cases-grid">
+    <div class="use-case-card">
+      <div class="uc-icon">🎯</div>
+      <div class="uc-role">For Founders & Operators</div>
+      <div class="uc-title">24/7 Customer Support Agent</div>
+      <div class="uc-desc">Handles your entire support inbox — answers questions, routes tickets, escalates edge cases to you.</div>
+      <div class="uc-tasks">
+        <div class="uc-task">Reads and replies to support emails</div>
+        <div class="uc-task">Learns from your docs & past replies</div>
+        <div class="uc-task">Escalates only what needs human eyes</div>
+        <div class="uc-task">Weekly digest: top issues + CSAT score</div>
+      </div>
+    </div>
+    <div class="use-case-card">
+      <div class="uc-icon">🔍</div>
+      <div class="uc-role">For Investors & Analysts</div>
+      <div class="uc-title">Deep Research Agent</div>
+      <div class="uc-desc">Monitors markets, competitors, and news. Delivers structured briefs every morning before you wake up.</div>
+      <div class="uc-tasks">
+        <div class="uc-task">Daily competitor intelligence reports</div>
+        <div class="uc-task">Summarizes 100s of sources → 1 brief</div>
+        <div class="uc-task">Tracks specific topics, companies, people</div>
+        <div class="uc-task">Exports to Notion, Slack, or email</div>
+      </div>
+    </div>
+    <div class="use-case-card">
+      <div class="uc-icon">📨</div>
+      <div class="uc-role">For Sales & Agencies</div>
+      <div class="uc-title">Outreach & Lead Agent</div>
+      <div class="uc-desc">Finds leads, personalizes outreach, follows up, and books meetings. Your SDR that never sleeps.</div>
+      <div class="uc-tasks">
+        <div class="uc-task">Builds targeted prospect lists daily</div>
+        <div class="uc-task">Writes personalized first-touch emails</div>
+        <div class="uc-task">Handles follow-up sequences automatically</div>
+        <div class="uc-task">Notifies you only when a reply is warm</div>
+      </div>
+    </div>
+    <div class="use-case-card">
+      <div class="uc-icon">📋</div>
+      <div class="uc-role">For Consultants & Freelancers</div>
+      <div class="uc-title">Client Ops Agent</div>
+      <div class="uc-desc">Manages your client communication, sends status updates, chases invoices, books meetings for you.</div>
+      <div class="uc-tasks">
+        <div class="uc-task">Sends weekly progress updates to clients</div>
+        <div class="uc-task">Invoice reminders — polite but persistent</div>
+        <div class="uc-task">Schedules calls from email back-and-forth</div>
+        <div class="uc-task">Keeps a live CRM of all client interactions</div>
+      </div>
+    </div>
+    <div class="use-case-card">
+      <div class="uc-icon">✍️</div>
+      <div class="uc-role">For Marketers & Creators</div>
+      <div class="uc-title">Content & Social Agent</div>
+      <div class="uc-desc">Turns your raw ideas into published content. Drafts, edits, schedules, and repurposes across channels.</div>
+      <div class="uc-tasks">
+        <div class="uc-task">Turns blog posts into 10x social snippets</div>
+        <div class="uc-task">Drafts newsletters from your notes</div>
+        <div class="uc-task">Monitors mentions & drafts responses</div>
+        <div class="uc-task">Maintains your brand voice across all output</div>
+      </div>
+    </div>
+    <div class="use-case-card">
+      <div class="uc-icon">⚙️</div>
+      <div class="uc-role">For Developers & CTOs</div>
+      <div class="uc-title">Custom Workflow Agent</div>
+      <div class="uc-desc">Full API access. Connect to any system. Build workflows that no off-the-shelf tool supports.</div>
+      <div class="uc-tasks">
+        <div class="uc-task">Webhook + REST API integration</div>
+        <div class="uc-task">Custom triggers and actions via config</div>
+        <div class="uc-task">Runs on your infra or ours</div>
+        <div class="uc-task">Dedicated Slack channel for agent logs</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works" class="section">
+  <div class="section-label">Simple By Design</div>
+  <div class="section-title">Up and running<br>in under 10 minutes</div>
+
+  <div class="hiw-grid">
+    <div class="hiw-step">
+      <div class="hiw-num">01</div>
+      <div class="hiw-title">Pick your agent type</div>
+      <div class="hiw-desc">Choose from Support, Research, Outreach, or Custom. Every plan includes onboarding assistance.</div>
+      <div class="hiw-arrow">→</div>
+    </div>
+    <div class="hiw-step">
+      <div class="hiw-num">02</div>
+      <div class="hiw-title">Connect your tools</div>
+      <div class="hiw-desc">Email, Slack, Notion, CRM — we handle the integrations. Takes 5 minutes via our setup wizard.</div>
+      <div class="hiw-arrow">→</div>
+    </div>
+    <div class="hiw-step">
+      <div class="hiw-num">03</div>
+      <div class="hiw-title">Agent goes live</div>
+      <div class="hiw-desc">Your agent starts working immediately. You get a live dashboard + weekly performance reports.</div>
+      <div class="hiw-arrow">→</div>
+    </div>
+    <div class="hiw-step">
+      <div class="hiw-num">04</div>
+      <div class="hiw-title">You review & refine</div>
+      <div class="hiw-desc">Approve, edit, or redirect at any time. The agent learns from your feedback and gets better every week.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="pricing-section">
+  <div class="pricing-inner">
+    <div class="section-label">Transparent Pricing</div>
+    <div class="section-title">One agent. One price.<br>No surprises.</div>
+    <p class="section-sub">Month-to-month. Cancel anytime. No contracts, no setup fees, no per-seat nonsense.</p>
+
+    <div class="pricing-grid">
+      <!-- Starter -->
+      <div class="plan-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-title">Support Bot</div>
+        <div class="plan-price">
+          <span class="was">$199</span><span class="amount">$99</span><span class="per">/mo</span>
+          <div><span class="launch-tag">50% LAUNCH DISCOUNT</span></div>
+        </div>
+        <div class="plan-features">
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">24/7 AI customer support inbox management</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Up to 1,000 conversations/month</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Email + Slack integration</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Smart escalation to human</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Weekly performance digest</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Cancel anytime</span></div>
+        </div>
+        <button class="btn-plan btn-plan-light" onclick="openModal('starter')">Get Support Bot →</button>
+      </div>
+
+      <!-- Pro (featured) -->
+      <div class="plan-card featured">
+        <div class="plan-badge">MOST POPULAR</div>
+        <div class="plan-name" style="color:var(--accent)">Professional</div>
+        <div class="plan-title" style="color:var(--ink)">Research Agent</div>
+        <div class="plan-price">
+          <span class="amount" style="color:var(--ink)">$199</span><span class="per" style="color:var(--muted)">/mo</span>
+        </div>
+        <div class="plan-features">
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Everything in Support Bot</span></div>
+          <hr class="plan-divider">
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Daily competitor + market intelligence briefs</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Unlimited conversations</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Notion / Google Docs export</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Advanced analytics dashboard</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Priority support (4hr response)</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Outreach agent add-on available</span></div>
+        </div>
+        <button class="btn-plan btn-plan-dark" onclick="openModal('pro')">Get Research Agent →</button>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="plan-card">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-title">Custom Agent</div>
+        <div class="plan-price">
+          <span class="amount">$499</span><span class="per">/mo</span>
+        </div>
+        <div class="plan-features">
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Everything in Research Agent</span></div>
+          <hr class="plan-divider" style="border-color:#2a2a3a">
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Fully custom agent workflow</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Full API + webhook access</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">White-label option</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">Dedicated agent instance</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">1-on-1 onboarding call</span></div>
+          <div class="plan-feat"><span class="check">✓</span><span class="feat-text">SLA guarantee + dedicated Slack</span></div>
+        </div>
+        <button class="btn-plan btn-plan-light" onclick="openModal('enterprise')">Get Custom Agent →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials-section">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div class="section-label">Early Customers</div>
+    <div class="section-title">Pros who switched<br>to autonomous</div>
+    <div class="testi-grid">
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"Replaced a $3k/month VA with the $199 plan. Support response time went from 6 hours to 8 minutes. My customers noticed immediately."</p>
+        <div class="testi-author">
+          <div class="testi-avatar">MK</div>
+          <div><div class="testi-name">Marcus K.</div><div class="testi-role">SaaS Founder, 3 products</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"The research agent sends me a brief every morning. I walk into every call knowing exactly what my clients' competitors did last week. It's an unfair advantage."</p>
+        <div class="testi-author">
+          <div class="testi-avatar">SL</div>
+          <div><div class="testi-name">Sara L.</div><div class="testi-role">Strategy Consultant</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★☆</div>
+        <p class="testi-text">"Setup took 8 minutes. Genuinely 8 minutes. It's been running for 3 months without me touching it. One feature request: more integrations."</p>
+        <div class="testi-author">
+          <div class="testi-avatar">JR</div>
+          <div><div class="testi-name">James R.</div><div class="testi-role">Agency Owner, 12 clients</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="section text-center">
+  <div class="section-label">Questions</div>
+  <div class="section-title">Everything you need<br>to know</div>
+  <div class="faq-list" style="text-align:left">
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What exactly does the agent do? Is this just a chatbot? <span class="arrow">▼</span></div>
+      <div class="faq-a">No — it's not a chatbot. Our agents perform real, multi-step tasks autonomously: reading emails, drafting replies, researching topics across the web, scheduling meetings, and pushing data to your tools. Think of it as a junior employee who works 24/7 and never makes the same mistake twice.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">How does the agent learn my business? <span class="arrow">▼</span></div>
+      <div class="faq-a">During setup you provide: your company description, past email examples, your docs/FAQs, and escalation rules. The agent uses this as its knowledge base and gets smarter every week based on your feedback and approvals.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What happens if the agent makes a mistake? <span class="arrow">▼</span></div>
+      <div class="faq-a">By default, agents are set to "draft mode" for the first 7 days — meaning they prepare replies but don't send until you approve. Once you're confident, you can enable autonomous mode. High-stakes actions (refunds, account changes) always require human approval regardless of mode.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What integrations are supported? <span class="arrow">▼</span></div>
+      <div class="faq-a">Gmail, Outlook, Slack, Notion, Google Docs, Airtable, HubSpot, and webhooks. Stripe and Intercom integrations are in beta. Custom integrations are available on the Enterprise plan.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Can I cancel anytime? <span class="arrow">▼</span></div>
+      <div class="faq-a">Yes, absolutely. Month-to-month billing. Cancel before your renewal date and you won't be charged again. We don't do contracts, lock-ins, or cancellation fees. Ever.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Is my data secure? <span class="arrow">▼</span></div>
+      <div class="faq-a">Your data is encrypted at rest and in transit. We never use your data to train models. Enterprise customers get a dedicated agent instance — no data is shared between customers. We can sign NDAs on request.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What's your refund policy? <span class="arrow">▼</span></div>
+      <div class="faq-a">If your agent isn't live within 24 hours of payment, you get a full refund, no questions asked. For general dissatisfaction in the first 7 days, email <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="8ef8e1e7edebe8e2e1f9efe7bbbdb7cee9e3efe7e2a0ede1e3">[email&#160;protected]</a> and we'll make it right — refund or credit at your choice.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TERMS OF SERVICE -->
+<section id="tos" class="tos-section">
+  <div class="tos-inner">
+    <div class="section-label">Legal</div>
+    <div class="section-title">Terms of Service<br>& Refund Policy</div>
+    <p class="section-sub" style="margin-bottom:0">Last updated: March 2026 · Operated by @okfreelancer</p>
+
+    <div class="tos-box">
+      <h3>1. Service Description</h3>
+      <p>AgentRental provides subscription-based access to autonomous AI agent services. Subscribers receive a configured AI agent that performs defined tasks within the scope of their chosen plan.</p>
+
+      <h3>2. Billing & Payment</h3>
+      <p>All plans are billed monthly. Your subscription renews automatically on the same date each month. Accepted payment methods include credit/debit card (via Stripe) and cryptocurrency (ETH/USDC). Crypto payments are manually processed within 1 business hour during operating hours (09:00–22:00 UTC).</p>
+
+      <h3>3. Cancellation</h3>
+      <p>You may cancel your subscription at any time by emailing <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ec9a83858f898a80839b8d85d9dfd5ac8b818d8580c28f8381">[email&#160;protected]</a> or via your customer dashboard. Cancellation takes effect at the end of the current billing period. You will not be charged for the following month.</p>
+
+      <h3>4. Refund Policy</h3>
+      <ul>
+        <li><strong>Activation guarantee:</strong> If your agent is not live within 24 hours of confirmed payment, you are entitled to a full refund.</li>
+        <li><strong>7-day satisfaction window:</strong> If you are unsatisfied within the first 7 days of a new subscription, contact us for a full refund or account credit.</li>
+        <li><strong>After 7 days:</strong> Subscriptions are non-refundable. Partial-month refunds are not issued.</li>
+        <li><strong>Crypto payments:</strong> Refunds for crypto payments are issued in USDC at the exchange rate at time of original payment.</li>
+      </ul>
+
+      <h3>5. Service Level Agreement (SLA)</h3>
+      <p>We guarantee 99.9% monthly uptime for active agent instances. In the event of downtime exceeding this threshold, affected customers receive a pro-rated service credit for the downtime period. SLA credits are the sole remedy for service interruptions.</p>
+
+      <h3>6. Acceptable Use</h3>
+      <p>You may not use AgentRental agents to send unsolicited bulk messages (spam), engage in illegal activity, harvest personal data without consent, or impersonate individuals or organizations. Violations result in immediate account termination without refund.</p>
+
+      <h3>7. Data & Privacy</h3>
+      <p>We do not sell or share your data with third parties. Your business data (emails, documents, contacts) is used solely to operate your agent. Data is encrypted in transit (TLS 1.3) and at rest (AES-256). You may request deletion of all your data at any time.</p>
+
+      <h3>8. Limitation of Liability</h3>
+      <p>AgentRental is not liable for business decisions made based on agent output. Agents are tools that assist — not replace — professional judgment. Maximum liability in any case is limited to the amount paid in the previous 30 days.</p>
+
+      <h3>9. Changes to Terms</h3>
+      <p>We will notify active subscribers by email at least 14 days before any material change to these terms. Continued use of the service after that date constitutes acceptance.</p>
+
+      <h3>10. Contact</h3>
+      <p>All legal and billing queries: <strong><a href="/cdn-cgi/l/email-protection#12647d7b7177747e7d65737b27212b52757f737b7e3c717d7f" style="color:var(--accent)"><span class="__cf_email__" data-cfemail="2e5841474d4b484241594f471b1d176e49434f4742004d4143">[email&#160;protected]</span></a></strong> · Twitter: <a href="https://twitter.com/okfreelancer" style="color:var(--accent)">@okfreelancer</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">Agent<span>Rental</span></div>
+      <div style="font-size:0.8rem;margin-top:0.3rem">24/7 autonomous AI agents · Operated by @okfreelancer</div>
+      <div class="wallet">ETH/USDC: 0x1FcEd4cdd432F6EC61249D94B959e0E74FE5577a</div>
+    </div>
+    <div class="footer-links">
+      <a href="#use-cases">Use Cases</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a href="#tos">Terms</a>
+      <a href="https://twitter.com/okfreelancer" target="_blank">@okfreelancer</a>
+      <a href="/cdn-cgi/l/email-protection#3640595f5553505a5941575f03050f76515b575f5a1855595b">Email Us</a>
+    </div>
+  </div>
+  <div style="max-width:1280px;margin:1.5rem auto 0;padding:1.5rem 0 0;border-top:1px solid #1a1a24;text-align:center;font-size:0.75rem;">
+    © 2026 AgentRental. All rights reserved. · <a href="#tos" style="color:rgba(255,255,255,0.4)">Terms & Refund Policy</a>
+  </div>
+</footer>
+
+<!-- SUBSCRIBE MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="mainModal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+
+    <!-- Checkout form -->
+    <div id="checkoutView">
+      <h2 id="modalTitle">Deploy Your Agent</h2>
+      <p style="font-size:0.88rem;color:var(--muted);margin-bottom:0.5rem">Activates within 5 minutes of payment confirmation.</p>
+
+      <div class="modal-plan-summary" id="planSummary">
+        <div class="modal-plan-name" id="summaryName">Research Agent</div>
+        <div class="modal-plan-price" id="summaryPrice">$199/mo</div>
+      </div>
+
+      <div class="payment-tabs">
+        <button class="pay-tab active" id="tabCard" onclick="switchTab('card')">💳 Card</button>
+        <button class="pay-tab" id="tabCrypto" onclick="switchTab('crypto')">🔐 Crypto</button>
+      </div>
+
+      <!-- CARD PANEL -->
+      <div class="pay-panel active" id="panelCard">
+        <div class="form-group">
+          <label>Email address</label>
+          <input type="email" id="cardEmail" placeholder="you@company.com" />
+        </div>
+        <div class="form-group">
+          <label>Card details</label>
+          <div id="card-element"></div>
+          <div id="card-errors"></div>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="tosCardCheck">
+          <label for="tosCardCheck">I agree to the <a href="#tos" onclick="closeModal()">Terms of Service</a> and <a href="#tos" onclick="closeModal()">Refund Policy</a>. I understand this is a monthly subscription and I can cancel anytime.</label>
+        </div>
+        <button class="submit-btn" id="cardSubmitBtn" onclick="handleCardPayment()" disabled>
+          <span id="cardBtnText">Subscribe Securely →</span>
+        </button>
+        <div class="secure-note">🔒 Payments powered by Stripe · TLS encrypted · No card data stored</div>
+      </div>
+
+      <!-- CRYPTO PANEL -->
+      <div class="pay-panel" id="panelCrypto">
+        <div class="form-group">
+          <label>Your email (for activation)</label>
+          <input type="email" id="cryptoEmail" placeholder="you@company.com" />
+        </div>
+        <div class="crypto-box">
+          <div class="crypto-label">Send payment to this wallet</div>
+          <div class="crypto-addr">0x1FcEd4cdd432F6EC61249D94B959e0E74FE5577a</div>
+          <div class="crypto-amount" id="cryptoAmount">0.06 ETH or equivalent USDC</div>
+        </div>
+        <div class="crypto-note">
+          After sending: email <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7b0d1412181e1d17140c1a124e48423b1c161a121755181416">[email&#160;protected]</a></strong> with your transaction hash, email address, and selected plan. Your agent activates within <strong>1 hour</strong> during 09:00–22:00 UTC. Outside hours: next business morning.
+        </div>
+        <div class="checkbox-row" style="margin-top:1rem">
+          <input type="checkbox" id="tosCryptoCheck">
+          <label for="tosCryptoCheck">I agree to the <a href="#tos" onclick="closeModal()">Terms of Service</a> and understand the manual activation process.</label>
+        </div>
+        <button class="submit-btn" id="cryptoSubmitBtn" onclick="handleCryptoConfirm()" disabled>
+          I've Sent Payment — Activate My Agent →
+        </button>
+      </div>
+    </div>
+
+    <!-- Success screen -->
+    <div class="success-screen" id="successView">
+      <div class="success-icon">🚀</div>
+      <h3 id="successTitle">Agent Deploying...</h3>
+      <p id="successMsg">Check your email for setup instructions. Your agent will be live within 5 minutes.</p>
+      <button class="btn-primary" style="margin-top:1.5rem;width:100%;justify-content:center" onclick="closeModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  // ───────────────────────────────────── PLAN CONFIG ───────────────────────────────────────────
+  // 👇 PASTE YOUR STRIPE PAYMENT LINK URLs HERE (dashboard.stripe.com/payment-links)
+  const STRIPE_PAYMENT_LINKS = {
+    starter:    'https://buy.stripe.com/5kQbJ10Wy2Ws7gI5ggaIM00',
+    pro:        'https://buy.stripe.com/7sY4gz0Wycx258A388aIM01',
+    enterprise: 'https://buy.stripe.com/bJe5kDgVwfJeeJa5ggaIM02',
+  };
+
+  const PLANS = {
+    starter:    { name: 'Support Bot',    price: '$99/mo',  eth: '0.03', usd: 99,  label: 'starter' },
+    pro:        { name: 'Research Agent', price: '$199/mo', eth: '0.06', usd: 199, label: 'pro' },
+    enterprise: { name: 'Custom Agent',  price: '$499/mo', eth: '0.15', usd: 499, label: 'enterprise' },
+  };
+
+  // ───────────────────────────────────── STRIPE ────────────────────────────────────────────────
+  // Replace with your actual Stripe publishable key
+  const STRIPE_KEY = 'pk_live_51T8mSwHR0llYzlgBKj7j561hvS3iyMUuk51SVsDRle116B6AofGzE08hIzDqXugqyugYM81as6emBx1mgHuwksCB00VS1RSHsq';
+  let stripe, cardElement, currentPlan;
+
+  try {
+    stripe = Stripe(STRIPE_KEY);
+    const elements = stripe.elements();
+    cardElement = elements.create('card', {
+      style: {
+        base: {
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: '15px',
+          color: '#0a0a0f',
+          '::placeholder': { color: '#9ca3af' }
+        }
+      }
+    });
+    cardElement.mount('#card-element');
+    cardElement.on('change', e => {
+      document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
+    });
+  } catch(e) {
+    // Stripe key not set yet — show placeholder
+    document.getElementById('card-element').innerHTML =
+      '<div style="padding:0.5rem;font-size:0.82rem;color:var(--muted);background:var(--paper);border-radius:4px;">⚠️ Stripe not configured yet — add your publishable key to enable card payments.</div>';
+  }
+
+  // ───────────────────────────────────── MODAL OPEN / CLOSE ────────────────────────────────────
+  function openModal(planKey) {
+    currentPlan = PLANS[planKey];
+    document.getElementById('summaryName').textContent = currentPlan.name;
+    document.getElementById('summaryPrice').textContent = currentPlan.price;
+    document.getElementById('cryptoAmount').textContent = `${currentPlan.eth} ETH or equivalent USDC`;
+    document.getElementById('checkoutView').style.display = 'block';
+    document.getElementById('successView').classList.remove('active');
+    switchTab('card');
+    document.getElementById('modalOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  }
+
+  // ───────────────────────────────────── TABS ─────────────────────────────────────────────────
+  function switchTab(tab) {
+    document.getElementById('panelCard').classList.toggle('active', tab === 'card');
+    document.getElementById('panelCrypto').classList.toggle('active', tab === 'crypto');
+    document.getElementById('tabCard').classList.toggle('active', tab === 'card');
+    document.getElementById('tabCrypto').classList.toggle('active', tab === 'crypto');
+  }
+
+  // ───────────────────────────────────── CHECKBOX GATES ────────────────────────────────────────
+  document.getElementById('tosCardCheck').addEventListener('change', e => {
+    document.getElementById('cardSubmitBtn').disabled = !e.target.checked;
+  });
+  document.getElementById('tosCryptoCheck').addEventListener('change', e => {
+    document.getElementById('cryptoSubmitBtn').disabled = !e.target.checked;
+  });
+
+  // ───────────────────────────────────── CARD PAYMENT → Stripe Payment Link ──────────────────
+  async function handleCardPayment() {
+    const email = document.getElementById('cardEmail').value.trim();
+    if (!email) { alert('Please enter your email address.'); return; }
+
+    const btn = document.getElementById('cardSubmitBtn');
+    const btnText = document.getElementById('cardBtnText');
+    btn.disabled = true;
+    btnText.textContent = 'Redirecting to Stripe...';
+
+    const link = STRIPE_PAYMENT_LINKS[currentPlan.label];
+
+    // If Payment Links are configured, redirect to Stripe hosted checkout
+    if (link && !link.includes('REPLACE')) {
+      // Append prefilled email so Stripe pre-fills the form
+      window.location.href = `${link}?prefilled_email=${encodeURIComponent(email)}`;
+    } else {
+      // Payment links not set up yet — fallback message
+      btn.disabled = false;
+      btnText.textContent = 'Subscribe Securely →';
+      document.getElementById('card-errors').textContent =
+        '⚠️ Card checkout not active yet. Please use the Crypto tab or email voiceflowai539@gmail.com';
+    }
+  }
+
+  // ───────────────────────────────────── CRYPTO CONFIRM ───────────────────────────────────────
+  function handleCryptoConfirm() {
+    const email = document.getElementById('cryptoEmail').value.trim();
+    if (!email) { alert('Please enter your email address so we can activate your agent.'); return; }
+    showSuccess(
+      '🔐 Crypto Payment Received',
+      `Send ${currentPlan.eth} ETH or equivalent USDC to:\n0x1FcEd4cdd432F6EC61249D94B959e0E74FE5577a\n\nThen email voiceflowai539@gmail.com with:\n• Transaction hash\n• Your email: ${email}\n• Plan: ${currentPlan.name}\n\nActivation within 1 hour (09:00–22:00 UTC).`
+    );
+  }
+
+  // ───────────────────────────────────── SUCCESS SCREEN ────
